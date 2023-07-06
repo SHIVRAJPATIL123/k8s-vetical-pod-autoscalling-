@@ -48,3 +48,32 @@ spec:
           requests:
             storage: 1Gi
 2)now for versions less than 1.27
+create a script 
+vi delete-dangling-pvcs.sh
+....
+#!/bin/bash
+
+# Get a list of all PVCs in the cluster
+pvc_list=$(kubectl get pvc --all-namespaces -o jsonpath='{range .items[?(@.status.phase=="Bound")]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}')
+
+# Iterate over the PVCs
+for pvc in $pvc_list; do
+    namespace=$(echo "$pvc" | cut -d'/' -f1)
+    pvc_name=$(echo "$pvc" | cut -d'/' -f2)
+
+    # Check if the PVC has any associated PVs
+    pv_list=$(kubectl describe pvc "$pvc_name" -n "$namespace" | grep -i "Used By:")
+    echo $pvc_name
+    # If no associated PV found, delete the PVC
+    #if [ -z "$pv_list" && "$pv_list" == *"none"* ]; then
+    if [[ "$pv_list" == *"<none>"* ]]; then
+        echo "Deleting PVC: $pvc"
+        echo $pv_list
+        kubectl delete pvc "$pvc_name"
+    fi
+done
+
+.....
+
+chmod +x delete-dangling-pvcs.sh
+./delete-dangling-pvcs.sh
