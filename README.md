@@ -51,7 +51,7 @@ spec:
 create a script 
 vi delete-dangling-pvcs.sh
 ....
-#!/bin/bash
+#!/bin/bash   or sh according to the requirments 
 
 # Get a list of all PVCs in the cluster
 pvc_list=$(kubectl get pvc --all-namespaces -o jsonpath='{range .items[?(@.status.phase=="Bound")]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}')
