@@ -76,6 +76,28 @@ for pvc in $pvc_list; do
 done
 
 .....
+and also for bin/sh and with selected labels for pvc like scalegrid 
+...............
+#!/bin/sh
 
+# Get a list of all PVCs in the cluster
+#pvc_list=$(kubectl get pvc --all-namespaces -o jsonpath='{range .items[?(@.status.phase=="Bound")]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}')
+pvc_list=$(kubectl get pvc --all-namespaces -o jsonpath='{range .items[?(@.metadata.labels.user=="scalegrid")]}{.metadata.namespace}/{.metadata.name}{";"}{.metadata.labels.app}{"\n"}{end}' | grep "postgresql-db$" | awk -F ';' '{print $1}')
+
+# Iterate over the PVCs
+for pvc in $pvc_list; do
+    namespace=$(echo "$pvc" | cut -d'/' -f1)
+    pvc_name=$(echo "$pvc" | cut -d'/' -f2)
+
+    # Check if the PVC has any associated PVs
+    pv_list=$(kubectl describe pvc "$pvc_name" -n "$namespace" | grep -i "Used By:")
+
+    # If no associated PV found, delete the PVC
+    if echo "$pv_list" | grep -qi "none"; then
+        echo "Deleting PVC: $pvc"
+        #kubectl delete pvc "$pvc_name" -n "$namespace"
+    fi
+done
+................
 chmod +x delete-dangling-pvcs.sh
 ./delete-dangling-pvcs.sh
